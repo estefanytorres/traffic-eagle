@@ -4,6 +4,8 @@ import dash_html_components as html
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 import pandas as pd
+import time
+
 
 # Initialize app
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
