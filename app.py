@@ -39,6 +39,9 @@ app.layout = html.Div(
                     step=None
                 )
             ],
+        ),
+        html.Div(
+            html.P(["Source code at ", html.A("Github", href="https://github.com/estefanytorres/traffic-eagle")])
         )
     ]
 )
