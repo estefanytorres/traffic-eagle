@@ -1,4 +1,5 @@
 import dash
+import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
@@ -8,10 +9,12 @@ import time
 
 
 # Initialize app
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-app = dash.Dash(__name__, meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1.0"}],)
-server = app.server
+app = dash.Dash(__name__,
+                meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1.0"}],
+                external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.title = "Traffic Eagle"
+server = app.server
+
 
 # Load Data
 df = pd.read_csv("data/accidents_by_state.csv")
@@ -20,29 +23,64 @@ df = pd.read_csv("data/accidents_by_state.csv")
 app.layout = html.Div(
     id="root",
     children=[
-        html.Div(
+        dbc.Navbar(
             id="header",
+            light=True,
             children=[
-                html.Img(id="logo", src="https://i.pinimg.com/originals/0d/ce/de/0dcedef0ee93efd1be0e68872f95397c.png"),
-                html.H1(children="Traffic Accidents in the U.S."),
+                html.A(
+                    href="#",
+                    children=[
+                        dbc.Row(
+                            align="center",
+                            no_gutters=True,
+                            children=[
+                                dbc.Col(html.Img(src="/assets/img/logo.png", height="30px")),
+                                dbc.Col(dbc.NavbarBrand("Traffic Eagle", className="ml-2")),
+                            ],
+                        ),
+                    ]
+                ),
             ],
         ),
         html.Div(
-            id="heatmap-container",
+            id="body",
             children=[
-                html.H4("Total accidents per state"),
-                dcc.Graph(id="state-choropleth"),
-                dcc.Slider(
-                    id='year-slider',
-                    min=df['year'].min(),
-                    max=df['year'].max(),
-                    value=df['year'].min(),
-                    marks={str(year): str(year) for year in df['year'].unique()},
-                    step=None
+                html.Div(
+                    id="map",
+                    className="block",
+                    children=[
+                        html.Div(
+                            className="block-container",
+                            children=[
+                                html.H4("Total accidents per state"),
+                                dcc.Graph(id="state-choropleth"),
+                                dcc.Slider(
+                                    id='year-slider',
+                                    min=df['year'].min(),
+                                    max=df['year'].max(),
+                                    value=df['year'].min(),
+                                    marks={str(year): str(year) for year in df['year'].unique()},
+                                    step=None
+                                )
+                            ]
+                        )
+                    ],
+                ),
+                html.Div(
+                    id="analysis",
+                    className="block",
+                    children=[
+                        html.Div(
+                            className="block-container",
+                            children=[
+                                html.H4("Analysis"),
+                            ]
+                        )
+                    ]
                 )
-            ],
+            ]
         ),
-        html.Div(
+        html.Footer(
             html.P(["Source code at ", html.A("Github", href="https://github.com/estefanytorres/traffic-eagle")])
         )
     ]
@@ -66,7 +104,6 @@ def update_map(year):
         colorbar_title="Traffic Accidents",
     ))
     fig.update_layout(
-        # title_text='US Traffic accidents',
         geo_scope='usa',
     )
     return fig

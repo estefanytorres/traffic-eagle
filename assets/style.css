@@ -1,0 +1,47 @@
+/* NAVBAR */
+#header img {
+    margin-right: 20px;
+}
+
+/* BODY */
+#body {
+    height: calc(100vh - 120px);
+    background-color: #252e3f;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: stretch;
+}
+.block {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-content: center;
+    padding: 3em 3em 1em 3em;
+}
+.block-container {
+    background-color: white;
+    /*color: white;*/
+    height: 100%;
+    padding: 2em;
+}
+#map {
+    flex: 6 60%;
+}
+#state-choropleth {
+    height: calc(78vh - 120px);
+    /*margin: 2em 0;*/
+}
+#analysis {
+    flex: 4 40%;
+    padding-left: 0;
+}
+
+/* FOOTER */
+footer {
+    height: 32px;
+    background-color: #252e3f;
+    color: white;
+    text-align: center;
+    padding-top: 1em;
+}
