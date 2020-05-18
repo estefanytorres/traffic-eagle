@@ -5,8 +5,6 @@ import dash_html_components as html
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 import pandas as pd
-import time
-
 
 # Initialize app
 app = dash.Dash(__name__,
@@ -17,7 +15,9 @@ server = app.server
 
 
 # Load Data
-df = pd.read_csv("data/accidents_by_state.csv")
+df = pd.read_csv("data/accidents_by_county.csv")
+df.Date = pd.to_datetime(df.Date)
+pop = pd.read_csv("data/population_by_county_2019.csv")
 
 # Layout
 app.layout = html.Div(
@@ -52,14 +52,14 @@ app.layout = html.Div(
                         html.Div(
                             className="block-container",
                             children=[
-                                html.H4("Total accidents per state"),
-                                dcc.Graph(id="state-choropleth"),
+                                html.H2("Total accidents per state"),
+                                dcc.Graph(id="state-choropleth", className='figure'),
                                 dcc.Slider(
                                     id='year-slider',
-                                    min=df['year'].min(),
-                                    max=df['year'].max(),
-                                    value=df['year'].min(),
-                                    marks={str(year): str(year) for year in df['year'].unique()},
+                                    min=df['Year'].min(),
+                                    max=df['Year'].max(),
+                                    value=df['Year'].min(),
+                                    marks={str(year): str(year) for year in df['Year'].unique()},
                                     step=None
                                 )
                             ]
@@ -73,7 +73,25 @@ app.layout = html.Div(
                         html.Div(
                             className="block-container",
                             children=[
-                                html.H4("Analysis"),
+                                html.Div(
+                                    id='analysis-option',
+                                    children=[
+                                        html.Label("Period:"),
+                                        dcc.Dropdown(
+                                            id='analysis-option-period',
+                                            className='dropdown',
+                                            options=[
+                                                {'label': 'Daily', 'value': 'D'},
+                                                {'label': 'Weekly', 'value': 'W'},
+                                                {'label': 'Monthly', 'value': 'M'}
+                                            ],
+                                            value='D',
+                                            searchable=False,
+                                            clearable=False
+                                        ),
+                                    ]
+                                ),
+                                html.Div(id="analysis-content")
                             ]
                         )
                     ]
@@ -93,20 +111,54 @@ app.layout = html.Div(
 )
 def update_map(year):
 
-    temp_df = df[df['year'] == year]
-    temp_df = temp_df.groupby('state').sum()['count'].reset_index()
+    figure_data = df[df.Year == year]
+    figure_data = figure_data.groupby('State').sum().Count.reset_index()
+    figure_pop = pop.groupby('State').sum().reset_index()
+    figure_data = figure_data.merge(figure_pop)
+    figure_data['Accidents'] = (figure_data.Count / figure_data.Population) * 1000000
 
     fig = go.Figure(data=go.Choropleth(
-        locations=temp_df['state'],
-        z=temp_df['count'].astype(float),
+        locations=figure_data.State,
+        z=figure_data.Accidents.astype(float),
         locationmode='USA-states',
         colorscale='Reds',
-        colorbar_title="Traffic Accidents",
+        # colorbar_title="Traffic Accidents per million habitants",
     ))
     fig.update_layout(
         geo_scope='usa',
     )
     return fig
+
+
+
+@app.callback(
+    Output(component_id='analysis-content', component_property='children'),
+    [Input(component_id='year-slider', component_property='value'),
+     Input(component_id='state-choropleth', component_property='clickData'),
+     Input(component_id='analysis-option-period', component_property='value')
+     ]
+)
+def update_state(year, map, period):
+    if map and period:
+        state = map['points'][0]['location']
+        figure_data = df[(df.Year == year) & (df.State == state)]
+        # figure_data = figure_data.groupby('Date').sum().Count
+        figure_data = figure_data.groupby(figure_data.Date.dt.to_period(period)).sum().Count
+        fig = {
+            'data': [{
+                'x': figure_data.index.to_timestamp(),
+                'y': figure_data.values
+            }],
+            # 'layout': {
+            #     'title': 'Dash Data Visualization'
+            # }
+        }
+        return [
+            html.H3(state),
+            dcc.Graph(className='figure', figure=fig)
+        ]
+    else:
+        return "Select a state to analyze..."
 
 
 if __name__ == '__main__':

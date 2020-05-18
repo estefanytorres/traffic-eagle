@@ -14,28 +14,40 @@
 }
 .block {
     display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-content: center;
     padding: 3em 3em 1em 3em;
 }
 .block-container {
+    /*display: flex;*/
+    flex-direction: column;
     background-color: white;
-    /*color: white;*/
     height: 100%;
+    width: 100%;
     padding: 2em;
 }
 #map {
-    flex: 6 60%;
+    flex: 60%;
 }
-#state-choropleth {
-    height: calc(78vh - 120px);
-    /*margin: 2em 0;*/
+.figure {
+    overflow: hidden;
+    width: 100%;
+    height: calc(100% - 5em);
 }
 #analysis {
-    flex: 4 40%;
+    flex: 40%;
     padding-left: 0;
 }
+#analysis-option {
+    display: flex;
+    margin-bottom: 1em;
+}
+#analysis-option label {
+    flex: 10%;
+    padding: 0.25em 0.25em 0 0;
+}
+#analysis-option-period {
+    flex: 90%;
+}
+
 
 /* FOOTER */
 footer {
