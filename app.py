@@ -5,6 +5,7 @@ import dash_html_components as html
 from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 import pandas as pd
+from statsmodels.tsa.seasonal import seasonal_decompose
 
 # Initialize app
 app = dash.Dash(__name__,
@@ -52,7 +53,7 @@ app.layout = html.Div(
                         html.Div(
                             className="block-container",
                             children=[
-                                html.H2("Total accidents per state"),
+                                html.H2("Total accidents per million population"),
                                 dcc.Graph(id="state-choropleth", className='figure'),
                                 dcc.Slider(
                                     id='year-slider',
@@ -76,22 +77,35 @@ app.layout = html.Div(
                                 html.Div(
                                     id='analysis-option',
                                     children=[
-                                        html.Label("Period:"),
+                                        html.Label("Graph:"),
                                         dcc.Dropdown(
-                                            id='analysis-option-period',
+                                            id='analysis-option-graph',
                                             className='dropdown',
                                             options=[
-                                                {'label': 'Daily', 'value': 'D'},
-                                                {'label': 'Weekly', 'value': 'W'},
-                                                {'label': 'Monthly', 'value': 'M'}
+                                                {'label': 'Data', 'value': 'D'},
+                                                {'label': 'Trend', 'value': 'T'},
+                                                {'label': 'Seasonality', 'value': 'S'},
                                             ],
                                             value='D',
                                             searchable=False,
                                             clearable=False
                                         ),
+                                        html.Label("Period:"),
+                                        dcc.Dropdown(
+                                            id='analysis-option-period',
+                                            className='dropdown',
+                                            options=[
+                                                # {'label': 'Daily', 'value': 'D'},
+                                                {'label': 'Weekly', 'value': 'W'},
+                                                {'label': 'Monthly', 'value': 'M'}
+                                            ],
+                                            value='W',
+                                            searchable=False,
+                                            clearable=False
+                                        ),
                                     ]
                                 ),
-                                html.Div(id="analysis-content")
+                                html.Div(id="analysis-content", className='figure')
                             ]
                         )
                     ]
@@ -135,24 +149,32 @@ def update_map(year):
     Output(component_id='analysis-content', component_property='children'),
     [Input(component_id='year-slider', component_property='value'),
      Input(component_id='state-choropleth', component_property='clickData'),
-     Input(component_id='analysis-option-period', component_property='value')
+     Input(component_id='analysis-option-period', component_property='value'),
+     Input(component_id='analysis-option-graph', component_property='value'),
      ]
 )
-def update_state(year, map, period):
+def update_state(year, map, period, graph):
     if map and period:
         state = map['points'][0]['location']
-        figure_data = df[(df.Year == year) & (df.State == state)]
-        # figure_data = figure_data.groupby('Date').sum().Count
+        # figure_data = df[(df.Year == year) & (df.State == state)]
+        figure_data = df[(df.State == state)]
         figure_data = figure_data.groupby(figure_data.Date.dt.to_period(period)).sum().Count
+        figure_data = figure_data.resample(period).asfreq().fillna(0)
+        figure_data.index = figure_data.index.to_timestamp()
+        if graph != 'D':
+            decomposition = seasonal_decompose(figure_data)
+            if graph == 'T':
+                figure_data = decomposition.trend
+            elif graph == 'S':
+                figure_data = decomposition.seasonal
+
         fig = {
             'data': [{
-                'x': figure_data.index.to_timestamp(),
+                'x': figure_data.index,
                 'y': figure_data.values
             }],
-            # 'layout': {
-            #     'title': 'Dash Data Visualization'
-            # }
         }
+
         return [
             html.H3(state),
             dcc.Graph(className='figure', figure=fig)
