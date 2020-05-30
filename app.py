@@ -55,7 +55,7 @@ app.layout = html.Div(
                             className="block-container",
                             children=[
                                 html.H2("Total accidents per million population"),
-                                dcc.Graph(id="state-choropleth", className='figure'),
+                                dcc.Graph(id="state-choropleth", className="figure"),
                                 dcc.Slider(
                                     id='year-slider',
                                     min=df['Year'].min(),
@@ -97,17 +97,20 @@ app.layout = html.Div(
                                             id='analysis-option-period',
                                             className='dropdown',
                                             options=[
-                                                # {'label': 'Daily', 'value': 'D'},
+                                                {'label': 'Monthly', 'value': 'M'},
                                                 {'label': 'Weekly', 'value': 'W'},
-                                                {'label': 'Monthly', 'value': 'M'}
+                                                {'label': 'Daily', 'value': 'D'}
                                             ],
-                                            value='W',
+                                            value='M',
                                             searchable=False,
                                             clearable=False
                                         ),
                                     ]
                                 ),
-                                html.Div(id="analysis-content", className='figure')
+                                dcc.Loading(
+                                    children=[html.Div(id="analysis-content", className='figure')],
+                                    type="circle",
+                                )
                             ]
                         )
                     ]
@@ -164,12 +167,8 @@ def update_state(year, map, period, graph):
         figure_data = figure_data.resample(period).asfreq().fillna(0)
         figure_data.index = figure_data.index.to_timestamp()
         if graph == 'P':
-            # model = auto_arima(figure_data, start_p=1, start_q=1, max_p=5, max_q=5, start_P=0,
-            #                    start_Q=0, max_P=5, max_Q=5, seasonal=True, stepwise=True,
-            #                    d=1, D=1, suppress_warnings=True)
             model = auto_arima(figure_data, suppress_warnings=True)
-            # result = model.fit()
-            n = 6
+            n = 10
             prediction_index = pd.date_range(figure_data.index[-1].date(), periods=n + 1,
                                              freq=figure_data.index[-1].freq)[1:]
             prediction = model.predict(n_periods=n)
@@ -178,10 +177,12 @@ def update_state(year, map, period, graph):
                     {
                         'x': figure_data.index,
                         'y': figure_data.values,
+                        'name': 'data'
                     },
                     {
                         'x': prediction_index,
-                        'y': prediction
+                        'y': prediction,
+                        'name': 'prediction'
                     }
                 ],
                 'layout': {
