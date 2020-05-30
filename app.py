@@ -6,6 +6,7 @@ from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 import pandas as pd
 from statsmodels.tsa.seasonal import seasonal_decompose
+from pmdarima import auto_arima
 
 # Initialize app
 app = dash.Dash(__name__,
@@ -85,6 +86,7 @@ app.layout = html.Div(
                                                 {'label': 'Data', 'value': 'D'},
                                                 {'label': 'Trend', 'value': 'T'},
                                                 {'label': 'Seasonality', 'value': 'S'},
+                                                {'label': 'Prediction', 'value': 'P'},
                                             ],
                                             value='D',
                                             searchable=False,
@@ -161,19 +163,45 @@ def update_state(year, map, period, graph):
         figure_data = figure_data.groupby(figure_data.Date.dt.to_period(period)).sum().Count
         figure_data = figure_data.resample(period).asfreq().fillna(0)
         figure_data.index = figure_data.index.to_timestamp()
-        if graph != 'D':
-            decomposition = seasonal_decompose(figure_data)
-            if graph == 'T':
-                figure_data = decomposition.trend
-            elif graph == 'S':
-                figure_data = decomposition.seasonal
+        if graph == 'P':
+            # model = auto_arima(figure_data, start_p=1, start_q=1, max_p=5, max_q=5, start_P=0,
+            #                    start_Q=0, max_P=5, max_Q=5, seasonal=True, stepwise=True,
+            #                    d=1, D=1, suppress_warnings=True)
+            model = auto_arima(figure_data, suppress_warnings=True)
+            # result = model.fit()
+            n = 6
+            prediction_index = pd.date_range(figure_data.index[-1].date(), periods=n + 1,
+                                             freq=figure_data.index[-1].freq)[1:]
+            prediction = model.predict(n_periods=n)
+            fig = {
+                'data': [
+                    {
+                        'x': figure_data.index,
+                        'y': figure_data.values,
+                    },
+                    {
+                        'x': prediction_index,
+                        'y': prediction
+                    }
+                ],
+                'layout': {
+                    'showlegend': False
+                }
+            }
 
-        fig = {
-            'data': [{
-                'x': figure_data.index,
-                'y': figure_data.values
-            }],
-        }
+        else:
+            if graph != 'D':
+                decomposition = seasonal_decompose(figure_data)
+                if graph == 'T':
+                    figure_data = decomposition.trend
+                elif graph == 'S':
+                    figure_data = decomposition.seasonal
+            fig = {
+                'data': [{
+                    'x': figure_data.index,
+                    'y': figure_data.values
+                }],
+            }
 
         return [
             html.H3(state),
